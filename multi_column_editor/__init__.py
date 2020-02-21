@@ -6,6 +6,7 @@
 import aqt.editor
 from anki.hooks import wrap
 from aqt import *
+from aqt import gui_hooks
 from aqt.editor import Editor
 
 from .config import getUserOption, setUserOption
@@ -80,12 +81,13 @@ def myEditorInit(self, mw, widget, parentWindow, addMode=False):
         pass
 
 
-def myOnBridgeCmd(self, cmd):
+def myOnBridgeCmd(handled, message, context):
     """
     Called from JavaScript to inject some values before it needs
     them.
     """
-    if cmd == "mceTrigger":
+    self = context
+    if message == "mceTrigger":
         count = getUserOption(getKeyForContext(self), 1)
         self.web.eval(f"setColumnCount({count});")
         self.ccSpin.blockSignals(True)
@@ -98,6 +100,8 @@ def myOnBridgeCmd(self, cmd):
         if ffFix:
             self.web.eval("setFFFix(true)")
         self.web.eval("makeColumns2()")
+        return (True, None)
+    return handled
 
 
 def onConfigClick(self):
@@ -126,4 +130,4 @@ def onCheck(self, key):
 
 
 Editor.__init__ = wrap(Editor.__init__, myEditorInit)
-Editor.onBridgeCmd = wrap(Editor.onBridgeCmd, myOnBridgeCmd, 'before')
+gui_hooks.webview_did_receive_js_message.append(myOnBridgeCmd)
