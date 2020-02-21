@@ -3,21 +3,25 @@
 # See github page to report issues or to contribute:
 # https://github.com/hssm/anki-addons
 
+import aqt.editor
 from anki.hooks import wrap
 from aqt import *
 from aqt.editor import Editor
-import aqt.editor
 
 # A sensible maximum number of columns we are able to set
 
 
 # Settings key to remember column count
-config= mw.addonManager.getConfig(__name__)
+config = mw.addonManager.getConfig(__name__)
 if config is None:
-    config=dict()
-def getConfig(self,key,defaultValue=None):
+    config = dict()
+
+
+def getConfig(self, key, defaultValue=None):
     transferConfig(self)
-    return config.get(key,defaultValue)
+    return config.get(key, defaultValue)
+
+
 # Flag to enable hack to make Frozen Fields look normal
 ffFix = False
 
@@ -146,30 +150,34 @@ $('#fields').bind('DOMNodeInserted', makeColumns);
 </script>
 """
 
-def getKeyForContext(self,field=None):
+
+def getKeyForContext(self, field=None):
     """Get a key that takes into account the parent window type and
     the note type.
-    
+
     This allows us to have a different key for different contexts,
     since we may want different column counts in the browser vs
     note adder, or for different note types.
     """
     key = str(self.note.mid)
-    if getConfig(self,"same config for each window",False):
-        key=f"{self.parentWindow.__class__.__name__}-{key}"
+    if getConfig(self, "same config for each window", False):
+        key = f"{self.parentWindow.__class__.__name__}-{key}"
     if field is not None:
-        key=f"{key}{field}"
+        key = f"{key}{field}"
     return key
 
-def setConfig(self,key,value):
+
+def setConfig(self, key, value):
     config[key] = value
-    mw.addonManager.writeConfig(__name__,config)
+    mw.addonManager.writeConfig(__name__, config)
     #print(f"Setting config[{key}] to {value}")
     self.loadNote()
 
+
 def onColumnCountChanged(self, count):
     "Save column count to settings and re-draw with new count."
-    setConfig(self,getKeyForContext(self),count)
+    setConfig(self, getKeyForContext(self), count)
+
 
 def myEditorInit(self, mw, widget, parentWindow, addMode=False):
     self.ccSpin = QSpinBox(self.widget)
@@ -184,10 +192,11 @@ def myEditorInit(self, mw, widget, parentWindow, addMode=False):
     hbox.addWidget(label)
     hbox.addWidget(self.ccSpin)
     hbox.addWidget(b)
-    
+
     self.ccSpin.setMinimum(1)
-    self.ccSpin.setMaximum(getConfig(self,"MAX_COLUMNS"))
-    self.ccSpin.valueChanged.connect(lambda value: onColumnCountChanged(self, value))
+    self.ccSpin.setMaximum(getConfig(self, "MAX_COLUMNS"))
+    self.ccSpin.valueChanged.connect(
+        lambda value: onColumnCountChanged(self, value))
 
     # We will place the column count editor next to the tags widget.
     pLayout = self.tags.parentWidget().layout()
@@ -195,7 +204,7 @@ def myEditorInit(self, mw, widget, parentWindow, addMode=False):
     (rIdx, cIdx, r, c) = pLayout.getItemPosition(pLayout.indexOf(self.tags))
     # Place ours on the same row, to its right.
     pLayout.addLayout(hbox, rIdx, cIdx+1)
-        
+
     # If the user has the Frozen Fields add-on installed, tweak the
     # layout a bit to make it look right.
     global ffFix
@@ -212,14 +221,14 @@ def myOnBridgeCmd(self, cmd):
     them.
     """
     if cmd == "mceTrigger":
-        count = getConfig(self,getKeyForContext(self), defaultValue=1)
+        count = getConfig(self, getKeyForContext(self), defaultValue=1)
         self.web.eval(f"setColumnCount({count});")
         self.ccSpin.blockSignals(True)
         self.ccSpin.setValue(count)
         self.ccSpin.blockSignals(False)
         for fld, val in self.note.items():
-            key=getKeyForContext(self,field=fld)
-            if getConfig(self,key, False):
+            key = getKeyForContext(self, field=fld)
+            if getConfig(self, key, False):
                 self.web.eval(f"setSingleLine('{fld}');")
         if ffFix:
             self.web.eval("setFFFix(true)")
@@ -228,26 +237,27 @@ def myOnBridgeCmd(self, cmd):
 
 def onConfigClick(self):
     m = QMenu(self.mw)
+
     def addCheckableAction(menu, key, text):
         a = menu.addAction(text)
         a.setCheckable(True)
-        a.setChecked(getConfig(self,key, False))
+        a.setChecked(getConfig(self, key, False))
         a.toggled.connect(lambda b, k=key: onCheck(self, k))
 
     # Descriptive title thing
     a = QAction(u"―Single Row―", m)
     a.setEnabled(False)
     m.addAction(a)
-    
+
     for fld, val in self.note.items():
-        key = getKeyForContext(self,field=fld)
+        key = getKeyForContext(self, field=fld)
         addCheckableAction(m, key, fld)
 
     m.exec_(QCursor.pos())
 
 
 def onCheck(self, key):
-    setConfig(self,key,not getConfig(self,key))
+    setConfig(self, key, not getConfig(self, key))
 
 
 Editor.__init__ = wrap(Editor.__init__, myEditorInit)
@@ -258,10 +268,12 @@ Editor.onBridgeCmd = wrap(Editor.onBridgeCmd, myOnBridgeCmd, 'before')
 #The code below should be eventually be deleted. It is used only to transfer the old configuration to the new one#
 ###############################################
 CONF_KEY_COLUMN_COUNT = 'multi_column_count'
+
+
 def transferConfig(self):
-  if not config.get("transfer done",False):
-    for key,value in mw.pm.profile.items():
-        if CONF_KEY_COLUMN_COUNT in key:
-            key=key.replace(f"{CONF_KEY_COLUMN_COUNT}-","")
-            setConfig(self,key,value)
-    setConfig(self,"transfer done",True)
+    if not config.get("transfer done", False):
+        for key, value in mw.pm.profile.items():
+            if CONF_KEY_COLUMN_COUNT in key:
+                key = key.replace(f"{CONF_KEY_COLUMN_COUNT}-", "")
+                setConfig(self, key, value)
+        setConfig(self, "transfer done", True)
