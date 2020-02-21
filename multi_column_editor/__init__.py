@@ -7,9 +7,9 @@ import aqt.editor
 from anki.hooks import wrap
 from aqt import *
 from aqt.editor import Editor
-from .from_file import str_from_file_name
 
 from .config import getUserOption, setUserOption
+from .from_file import str_from_file_name
 
 # A sensible maximum number of columns we are able to set
 
